@@ -12,6 +12,7 @@ const StickyCartButton = ({ itemCount, totalAmount }) => {
     navigate('/cart-checkout');
   };
 
+  // Mobile bottom action bar for cart
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg">
       <div className="p-4">
