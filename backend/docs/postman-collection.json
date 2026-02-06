@@ -1,0 +1,460 @@
+{
+  "info": {
+    "name": "College Canteen QR Backend API",
+    "description": "Complete API collection for the college canteen QR-based token ordering system",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Google Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"your_google_id_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/google-login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "google-login"]
+            }
+          }
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/verify-token",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "verify-token"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create Payment Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"id\": \"tea\",\n      \"name\": \"Tea\",\n      \"price\": 15,\n      \"quantity\": 2\n    },\n    {\n      \"id\": \"samosa\",\n      \"name\": \"Samosa\",\n      \"price\": 10,\n      \"quantity\": 1\n    }\n  ],\n  \"phone\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/create-order",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "create-order"]
+            }
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_id_from_razorpay\",\n  \"razorpay_payment_id\": \"payment_id_from_razorpay\",\n  \"razorpay_signature\": \"signature_from_razorpay\",\n  \"orderData\": {\n    \"items\": [\n      {\n        \"id\": \"tea\",\n        \"name\": \"Tea\",\n        \"price\": 15,\n        \"quantity\": 2\n      }\n    ],\n    \"phone\": \"+919876543210\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/verify",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "verify"]
+            }
+          }
+        },
+        {
+          "name": "Get Payment Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/config",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "config"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/my-orders?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "my-orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/my-orders/:orderId",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "my-orders", ":orderId"],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order by Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/by-token/:token",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "by-token", ":token"],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "T-001"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Active Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/active-order",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "active-order"]
+            }
+          }
+        },
+        {
+          "name": "Get Queue Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/queue-status",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "queue-status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tokens",
+      "item": [
+        {
+          "name": "Find Token by Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tokens/find",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", "find"]
+            }
+          }
+        },
+        {
+          "name": "Find Token by Phone",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tokens/find",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", "find"]
+            }
+          }
+        },
+        {
+          "name": "Get Token Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tokens/:token",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", ":token"],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "T-001"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Token Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tokens/:token/status",
+              "host": ["{{base_url}}"],
+              "path": ["tokens", ":token", "status"],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "T-001"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendor",
+      "item": [
+        {
+          "name": "Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/orders?page=1&limit=20&status=pending",
+              "host": ["{{base_url}}"],
+              "path": ["vendor", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"preparing\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/vendor/orders/:orderId/status",
+              "host": ["{{base_url}}"],
+              "path": ["vendor", "orders", ":orderId", "status"],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["vendor", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get Queue Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/orders/queue",
+              "host": ["{{base_url}}"],
+              "path": ["vendor", "orders", "queue"]
+            }
+          }
+        },
+        {
+          "name": "Get Ready Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/orders/ready",
+              "host": ["{{base_url}}"],
+              "path": ["vendor", "orders", "ready"]
+            }
+          }
+        },
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/analytics/today",
+              "host": ["{{base_url}}"],
+              "path": ["vendor", "analytics", "today"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3001/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3001",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Auth Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/health",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "health"]
+            }
+          }
+        },
+        {
+          "name": "Vendor Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/vendor/health",
+              "host": ["{{base_url}}"],
+              "path": ["vendor", "health"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

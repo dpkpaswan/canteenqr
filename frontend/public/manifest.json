@@ -1,0 +1,24 @@
+{
+  "short_name": "Canteen QR",
+  "name": "College Canteen QR Ordering",
+  "description": "Quick and easy canteen ordering with QR codes",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "favicon.ico",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#667eea",
+  "background_color": "#ffffff",
+  "categories": ["food", "shopping"]
+}
