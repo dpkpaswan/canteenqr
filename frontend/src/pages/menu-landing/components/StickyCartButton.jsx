@@ -13,7 +13,6 @@ const StickyCartButton = ({ itemCount, totalAmount }) => {
   };
 
   return (
-  return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg">
       <div className="p-4">
         <Button

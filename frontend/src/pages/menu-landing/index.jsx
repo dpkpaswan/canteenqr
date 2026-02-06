@@ -164,13 +164,23 @@ const MenuLanding = () => {
         setLoading(true);
         setError(false);
         
-        await new Promise(resolve => setTimeout(resolve, 1200));
+        // Fetch menu items from API
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/menu`);
+        const result = await response.json();
         
-        setMenuItems(mockMenuData);
+        if (result.success) {
+          setMenuItems(result.data);
+        } else {
+          throw new Error(result.message || 'Failed to load menu');
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error('Error fetching menu:', err);
         setError(true);
+        
+        // Fallback to mock data if API fails
+        setMenuItems(mockMenuData);
         setLoading(false);
       }
     };

@@ -17,6 +17,7 @@ const orderRoutes = require('./routes/orders');
 const paymentRoutes = require('./routes/payments');
 const vendorRoutes = require('./routes/vendor');
 const tokenRoutes = require('./routes/tokens');
+const menuRoutes = require('./routes/menu');
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorHandler');
@@ -138,6 +139,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/tokens', tokenRoutes);
+app.use('/api/menu', menuRoutes);
 
 // 404 handler for undefined routes
 app.use('*', (req, res) => {
