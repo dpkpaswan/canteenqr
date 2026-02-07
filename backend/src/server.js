@@ -115,6 +115,9 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Static file serving for assets (college logo, images, etc.)
+app.use('/assets', express.static('public/assets'));
+
 // Logging middleware
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));

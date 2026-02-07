@@ -117,6 +117,7 @@ router.post('/verify', authenticateToken, validate.verifyPayment, asyncHandler(a
     // Step 3: Create order in database
     console.log('💾 Creating order in database...');
     console.log('🔍 Items data structure:', JSON.stringify(items, null, 2));
+    
     const orderDetails = {
       user_name: name,
       user_email: email,
@@ -127,8 +128,28 @@ router.post('/verify', authenticateToken, validate.verifyPayment, asyncHandler(a
       payment_signature: razorpay_signature
     };
 
-    const createdOrder = await databaseService.createOrder(orderDetails);
-    console.log('✅ Order created successfully:', createdOrder.token);
+    let createdOrder;
+    try {
+      createdOrder = await databaseService.createOrder(orderDetails);
+      console.log('✅ Order created successfully:', createdOrder.token);
+    } catch (dbError) {
+      console.error('❌ Database order creation failed:', {
+        error: dbError.message,
+        code: dbError.code,
+        orderDetails: {
+          user_email: email,
+          total_amount: calculatedTotal,
+          payment_id: razorpay_payment_id
+        }
+      });
+      
+      // If it's a token conflict, provide specific error message
+      if (dbError.message.includes('token') || dbError.message.includes('duplicate')) {
+        throw new AppError('Order creation failed due to token conflict. Please try again.', 500);
+      }
+      
+      throw new AppError('Failed to create order. Payment was successful but order could not be processed.', 500);
+    }
 
     // Step 4: Send professional confirmation email
     console.log('📧 Sending order confirmation email...');
@@ -182,8 +203,42 @@ router.post('/verify', authenticateToken, validate.verifyPayment, asyncHandler(a
     console.error('❌ Payment verification failed with error:', {
       message: error.message,
       stack: error.stack,
-      type: error.constructor.name
+      type: error.constructor.name,
+      requestData: {
+        user: email,
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        itemCount: items?.length
+      }
     });
+    
+    // Provide more specific error messages
+    if (error.message.includes('token') || error.message.includes('duplicate')) {
+      return res.status(500).json({
+        success: false,
+        message: 'Order creation failed due to token conflict. Please try again.',
+        error: 'TOKEN_CONFLICT',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    if (error.message.includes('Payment')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+        error: 'PAYMENT_ERROR',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    if (error.message.includes('Database') || error.message.includes('Supabase')) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database service temporarily unavailable. Please try again.',
+        error: 'DATABASE_ERROR',
+        timestamp: new Date().toISOString()
+      });
+    }
     
     // Re-throw to be handled by error middleware
     throw error;

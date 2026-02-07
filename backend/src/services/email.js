@@ -240,8 +240,15 @@ class EmailService {
       <div style="max-width: 600px; margin: 0 auto; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;">
-          <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Order Confirmed!</h1>
-          <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">${collegeName} - ${canteenName}</p>
+          <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+            <div style="background: white; padding: 10px; border-radius: 8px; margin-right: 15px;">
+              <img src="https://canteenqr.onrender.com/assets/images/college_logo.jpg" alt="College Logo" style="height: 40px; width: auto; display: block;">
+            </div>
+            <div style="text-align: left;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: bold;">Order Confirmed!</h1>
+              <p style="margin: 5px 0 0 0; font-size: 16px; opacity: 0.9;">${collegeName} - ${canteenName}</p>
+            </div>
+          </div>
         </div>
 
         <!-- Token Display -->

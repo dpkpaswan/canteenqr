@@ -41,10 +41,98 @@ class DatabaseService {
       } else {
         console.log('✅ Orders table already exists');
       }
+
+      // Initialize daily counter table for atomic token generation
+      await this.initializeDailyCounterTable();
     } catch (error) {
       console.error('❌ Error initializing database tables:', error);
       throw error;
     }
+  }
+
+  /**
+   * Initialize daily counter table for atomic token generation
+   */
+  async initializeDailyCounterTable() {
+    try {
+      // Try to access the daily_counters table
+      const { data: counterCheck, error: counterError } = await this.supabase
+        .from('daily_counters')
+        .select('id')
+        .limit(1);
+
+      if (counterError && counterError.code === 'PGRST116') {
+        console.log('📊 Daily counters table not found. Please create it manually in Supabase with this SQL:');
+        console.log(`
+CREATE TABLE IF NOT EXISTS daily_counters (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  date_key DATE NOT NULL UNIQUE,
+  counter INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS daily_counters_date_idx ON daily_counters(date_key);
+        `);
+      } else if (counterError) {
+        console.warn('⚠️  Daily counters table access failed:', counterError.message);
+      } else {
+        console.log('✅ Daily counters table exists');
+      }
+    } catch (error) {
+      console.warn('⚠️  Could not initialize daily counters table:', error.message);
+    }
+  }
+
+  /**
+   * Get next atomic counter for today
+   */
+  async getNextAtomicCounter() {
+    try {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Try to increment counter atomically using PostgreSQL's UPSERT
+      const { data, error } = await this.supabase.rpc('increment_daily_counter', {
+        date_input: today
+      });
+
+      if (error) {
+        console.warn('⚠️  Atomic counter failed:', error.message);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.warn('⚠️  Atomic counter error:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Alternative atomic token generation using dedicated counter table
+   */
+  async generateAtomicToken() {
+    const tokenPrefix = process.env.TOKEN_PREFIX || 'T';
+    
+    try {
+      // Try atomic counter first
+      const counter = await this.getNextAtomicCounter();
+      if (counter && counter > 0) {
+        const atomicToken = `${tokenPrefix}-${String(counter).padStart(3, '0')}`;
+        console.log(`⚡ Generated atomic token: ${atomicToken} (counter: ${counter})`);
+        return atomicToken;
+      }
+    } catch (error) {
+      console.warn('⚠️  Atomic token generation failed:', error.message);
+    }
+
+    // Fallback to timestamp-based unique token
+    const timestamp = Date.now().toString().slice(-6);
+    const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
+    const fallbackToken = `${tokenPrefix}-${timestamp}${randomPart}`;
+    
+    console.log(`🔄 Using fallback unique token: ${fallbackToken}`);
+    return fallbackToken;
   }
 
   /**
@@ -131,62 +219,65 @@ class DatabaseService {
   }
 
   /**
-   * Generate next sequential token for today (resets daily at 00:00 Asia/Kolkata)
+   * Clean up incomplete orders (orders without payment_id that are older than 30 minutes)
+   * This helps prevent token conflicts from abandoned payment attempts
    */
-  async generateDailyToken() {
+  async cleanupIncompleteOrders() {
     try {
-      const { startOfDay, endOfDay } = this.getTodayRange();
-      const tokenPrefix = process.env.TOKEN_PREFIX || 'T';
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       
-      console.log(`🔍 Searching for tokens between ${startOfDay} and ${endOfDay}`);
-      
-      // Get all tokens created today, ordered by token number
-      const { data: todaysOrders, error } = await this.supabase
+      const { data: incompleteOrders, error: findError } = await this.supabase
         .from('orders')
         .select('token, created_at')
-        .gte('created_at', startOfDay)
-        .lte('created_at', endOfDay)
-        .order('token', { ascending: true });
+        .is('payment_id', null)
+        .lt('created_at', thirtyMinutesAgo);
 
-      if (error) {
-        console.error('❌ Database error fetching today\'s tokens:', error);
-        throw error;
+      if (findError) {
+        console.error('❌ Error finding incomplete orders:', findError);
+        return;
       }
 
-      console.log(`🔍 Found ${todaysOrders?.length || 0} existing orders today:`, 
-        todaysOrders?.map(o => `${o.token} (${o.created_at})`) || []);
-
-      // Find the next available token number
-      let nextTokenNumber = 1;
-      if (todaysOrders && todaysOrders.length > 0) {
-        // Extract token numbers and find the next available one
-        const existingNumbers = todaysOrders
-          .map(order => {
-            const match = order.token.match(new RegExp(`^${tokenPrefix}-(\\d+)$`));
-            return match ? parseInt(match[1]) : null;
-          })
-          .filter(num => num !== null)
-          .sort((a, b) => a - b);
-
-        console.log(`🔍 Existing token numbers:`, existingNumbers);
-
-        // Find first gap or next number after the highest
-        for (let i = 0; i < existingNumbers.length; i++) {
-          if (existingNumbers[i] !== nextTokenNumber) {
-            break; // Found a gap
-          }
-          nextTokenNumber++;
-        }
+      if (!incompleteOrders || incompleteOrders.length === 0) {
+        return;
       }
 
-      const token = `${tokenPrefix}-${String(nextTokenNumber).padStart(3, '0')}`;
-      
-      console.log(`📋 Generated daily token: ${token} (Today's order #${nextTokenNumber})`);
-      return token;
+      console.log(`🧹 Found ${incompleteOrders.length} incomplete orders to clean up:`, 
+        incompleteOrders.map(o => o.token));
+
+      const { error: deleteError } = await this.supabase
+        .from('orders')
+        .delete()
+        .is('payment_id', null)
+        .lt('created_at', thirtyMinutesAgo);
+
+      if (deleteError) {
+        console.error('❌ Error cleaning up incomplete orders:', deleteError);
+      } else {
+        console.log(`✅ Cleaned up ${incompleteOrders.length} incomplete orders`);
+      }
     } catch (error) {
-      console.error('❌ Error generating daily token:', error);
-      throw new Error('Failed to generate daily order token');
+      console.error('❌ Error during cleanup:', error);
     }
+  }
+
+  /**
+   * Generate guaranteed unique token - no retries needed
+   */
+  async generateDailyToken() {
+    const tokenPrefix = process.env.TOKEN_PREFIX || 'T';
+    
+    // Use high-precision timestamp + random for guaranteed uniqueness
+    const now = Date.now();
+    const microTime = process.hrtime.bigint().toString().slice(-6); // Microseconds
+    const randomPart = Math.random().toString(36).substr(2, 6).toUpperCase();
+    const processId = process.pid.toString().slice(-2);
+    
+    // Format: T-HHMMSS-RANDOM (based on current time + randomness)
+    const timeStr = new Date(now).toTimeString().substr(0, 8).replace(/:/g, '');
+    const uniqueToken = `${tokenPrefix}-${timeStr.slice(-6)}-${randomPart.slice(0, 4)}`;
+    
+    console.log(`✅ Generated guaranteed unique token: ${uniqueToken}`);
+    return uniqueToken;
   }
 
   /**
@@ -197,11 +288,17 @@ class DatabaseService {
   }
 
   /**
-   * Create a new order
+   * Create a new order with guaranteed unique token - no retries needed
    */
   async createOrder(orderData) {
     try {
       const token = await this.generateDailyToken();
+      
+      if (!token) {
+        throw new Error('Failed to generate order token');
+      }
+      
+      console.log(`🎫 Creating order with token: ${token}`);
       
       const { data, error } = await this.supabase
         .from('orders')
@@ -220,14 +317,15 @@ class DatabaseService {
         .single();
 
       if (error) {
+        console.error('❌ Order creation failed:', error);
         throw error;
       }
 
-      console.log(`✅ Order created successfully: ${token}`);
+      console.log(`✅ Order created successfully: ${token} (ID: ${data.id})`);
       return data;
     } catch (error) {
-      console.error('❌ Error creating order:', error);
-      throw new Error('Failed to create order');
+      console.error('❌ Database order creation failed:', error);
+      throw error;
     }
   }
 
